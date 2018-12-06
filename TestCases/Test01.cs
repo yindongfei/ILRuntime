@@ -7,6 +7,12 @@ namespace TestCases
 {
     class Test01
     {
+        public static Dictionary<EnumTest.TestEnum, EnumTest.TestEnum[]> dicAttrConver5 = new Dictionary<EnumTest.TestEnum, EnumTest.TestEnum[]>()
+        {
+            {
+                EnumTest.TestEnum.Enum1,new EnumTest.TestEnum[]{ EnumTest.TestEnum.Enum2}
+            },
+        };
         public static int foo(int init)
         {
             int b = init;
@@ -83,6 +89,51 @@ namespace TestCases
             sw.Stop();
 
             Console.WriteLine(string.Format("Elapsed time:{0:0}ms, result = {1}", sw.ElapsedMilliseconds, cnt));
+        }
+
+        public static void UnitTest_Performance3()
+        {
+            Console.WriteLine("UnitTest_Performance3");
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            int[] arr = new int[5000000];
+            for (int i = 0; i < 5000000; i++)
+            {
+                arr[i] = i;
+            }
+            sw.Stop();
+
+            Console.WriteLine(string.Format("Elapsed time:{0:0}ms, result = {1}", sw.ElapsedMilliseconds, arr.Length));
+        }
+        public static void UnitTest_Performance4()
+        {
+            Func<int, float, short, double> func = (a, b, c) =>
+               {
+                   return a + b + c;
+               };
+            ILRuntimeTest.TestFramework.DelegateTest.DelegatePerformanceTest = (a, b, c) =>
+             {
+                 return a + b + c;
+             };
+            var func2 = ILRuntimeTest.TestFramework.DelegateTest.DelegatePerformanceTest;
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+
+            sw.Start();
+            for(int i = 0; i < 100000; i++)
+            {
+                func(1, 3.6f, 4);
+            }
+            sw.Stop();
+
+            Console.WriteLine(string.Format("Elapsed time:{0:0}ms", sw.ElapsedMilliseconds));
+
+            sw.Restart();
+            for (int i = 0; i < 100000; i++)
+            {
+                func2(1, 3.6f, 4);
+            }
+            sw.Stop();
+            Console.WriteLine(string.Format("Elapsed time2:{0:0}ms", sw.ElapsedMilliseconds));
         }
 
         public static void UnitTest_Cls()
@@ -223,6 +274,61 @@ namespace TestCases
         public static bool IsSingletonInstance(T inst)
         {
             return _inst == inst;
+        }
+    }
+
+    public class DictionaryEnumeratorTest<TKey, TValue>
+    {
+        Dictionary<TKey, TValue> dic = new Dictionary<TKey, TValue>();
+        public void Add(TKey key, TValue value)
+        {
+            dic.Add(key, value);
+        }
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            return dic.GetEnumerator();    //报错
+        }
+
+        public void GetEnumeratorTest()
+        {
+            var e = dic.GetEnumerator();   //正常
+            while (e.MoveNext())
+            {
+                Console.WriteLine(e.Current.Key + "  " + e.Current.Value);
+            }
+        }
+
+        public void GetEnumeratorTest2()
+        {
+            IEnumerator<KeyValuePair<TKey, TValue>> e = dic.GetEnumerator();   //报错
+            while (e.MoveNext())
+            {
+                Console.WriteLine(e.Current.Key + "  " + e.Current.Value);
+            }
+        }
+    }
+
+    public class MyTest
+    {
+        public static Dictionary<string, MyTest[]> data = new Dictionary<string, MyTest[]>();
+
+        public static void UnitTest_Test1()
+        {
+            var arr = new MyTest[] { new MyTest(), null, null };
+            data["test"] = arr;
+            Console.WriteLine(data["test"][0]);
+        }
+        public static void Test()
+        {
+            DictionaryEnumeratorTest<int, int> t = new DictionaryEnumeratorTest<int, int>();
+            t.Add(1, 1);
+            t.GetEnumeratorTest();
+            t.GetEnumeratorTest2();
+            var e = t.GetEnumerator();
+            while (e.MoveNext())
+            {
+                Console.WriteLine(e.Current.Key + "  " + e.Current.Value);
+            }
         }
     }
 }

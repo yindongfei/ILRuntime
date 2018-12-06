@@ -23,11 +23,19 @@ namespace TestCases
         public SimpleTest()
             : this(1)
         {
-            c = 2;
+            Action a = () =>
+            {
+                c = 2;
+            };
+            a();
         }
         public SimpleTest(int a)
         {
-            this.a = a;
+            Action act = () =>
+            {
+                this.a = a;
+            };
+            act();
         }
 
         public void Test(int a, int c)
@@ -108,6 +116,61 @@ namespace TestCases
             if (t != t2)
             {
                 Console.Write("true 2");
+            }
+        }
+
+        public static void MultiDimensionalArrayTest()
+        {
+            int[,] arr = new int[3, 4];
+            arr[1, 2] = 3;
+
+            MultiDimensionalArrayTestSub(arr);
+        }
+
+        static void MultiDimensionalArrayTestSub(int[,] arr)
+        {
+            Console.WriteLine("arr = " + arr[1, 2]);
+        }
+
+        public class FileCode<T>
+        {
+            public static readonly bool TypeSupportsPacking = default(T) != null;
+        }
+
+        public static void GenericDefaultTest()
+        {
+            var ins = new FileCode<uint>();
+            Console.WriteLine(FileCode<uint>.TypeSupportsPacking);
+            Console.WriteLine(FileCode<string>.TypeSupportsPacking);
+        }
+
+        public static void EqualsTest()
+        {
+            act1 = foo4;
+            Action act2 = foo4;
+            Console.WriteLine(new Test4().Equals2(act2));//true
+            Console.WriteLine(new Test4().Equals(act2));//false
+        }
+
+        public static void NullableTest()
+        {
+            int? val = 123;
+            if (val.HasValue)
+                Console.WriteLine(val.Value.ToString());
+        }
+
+        static void foo4() { }
+        static Action act1 = null;
+        class Test4
+        {
+            public bool Equals2(object obj)
+            {
+                return act1.Equals(obj);
+            }
+
+            public override bool Equals(object obj)
+            {
+                return act1.Equals(obj);
             }
         }
     }

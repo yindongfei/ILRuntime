@@ -112,7 +112,11 @@ namespace TestCases
         {
             Action<int, string, string> a = (b, c, d) =>
             {
-                Console.WriteLine(string.Format("{0},{1},{2}", b, c, d));
+                Action act = () =>
+                {
+                    Console.WriteLine(string.Format("{0},{1},{2}", b, c, d));
+                };
+                act();
             };
 
             a(1, "2", "3");
@@ -156,6 +160,66 @@ namespace TestCases
             a += TestString4;
 
             a("ffff");
+        }
+
+        public static void DelegateTest15()
+        {
+            DelegateTestCls cls = new DelegateTestCls(123);
+            DelegateTest15Sub(cls.IntTest);
+        }
+
+        static void DelegateTest15Sub(Action<int> test)
+        {
+            test(555);
+        }
+
+        public static void DelegateTest16()
+        {
+            System.Action a = () => { };
+            System.Action<int> a_2 = (i) => { };
+            int a3 = 2;
+            Console.WriteLine(typeof(System.Action) == a.GetType());  //false, should be true
+            Console.WriteLine(typeof(int) == a3.GetType());  //false, should be true
+        }
+
+        public static void DelegateTest17()
+        {
+            Action a = () =>{ };
+            Console.WriteLine(a.GetHashCode());
+        }
+
+        public static void DelegateTest18()
+        {
+            ILRuntimeTest.TestFramework.DelegateTest.EnumDelegateTest = DelegateTest18Sub;
+            ILRuntimeTest.TestFramework.DelegateTest.TestEnumDelegate();
+        }
+
+        static void DelegateTest18Sub(ILRuntimeTest.TestFramework.TestCLREnum e)
+        {
+            switch (e)
+            {
+                case ILRuntimeTest.TestFramework.TestCLREnum.Test1:
+                    Console.WriteLine("Test1");
+                    break;
+                case ILRuntimeTest.TestFramework.TestCLREnum.Test2:
+                    Console.WriteLine("Test2");
+                    break;
+                case ILRuntimeTest.TestFramework.TestCLREnum.Test3:
+                    Console.WriteLine("Test3");
+                    break;
+                default:
+                    throw new Exception("Should not be here");
+            }
+        }
+        public static void DelegateTest19()
+        {
+            ILRuntimeTest.TestFramework.DelegateTest.EnumDelegateTest2 = DelegateTest19Sub;
+            ILRuntimeTest.TestFramework.DelegateTest.TestEnumDelegate2();
+        }
+
+        static ILRuntimeTest.TestFramework.TestCLREnum DelegateTest19Sub()
+        {
+            return ILRuntimeTest.TestFramework.TestCLREnum.Test2;
         }
 
         static void TestString(string a)

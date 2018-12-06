@@ -40,6 +40,14 @@ namespace TestCases
     {
         public float abc;
     }
+    public struct TestStruct
+    {
+        public int ID;
+    }
+    class TestStaticClass
+    {
+        public static TestStruct sss = new TestStruct();
+    }
     public struct Vector3
     {
 
@@ -105,11 +113,12 @@ namespace TestCases
         {
             return left.x * right.x + left.y * right.y + left.z * right.z;
         }
+        static Vector3 one = new Vector3(1, 1, 1);
         public static Vector3 One
         {
             get
             {
-                return new Vector3(1, 1, 1);
+                return one;
             }
         }
         public static Vector3 Zero
@@ -122,6 +131,42 @@ namespace TestCases
         public static string typetag;
         //测试支持性
         public static explicit operator int(Vector3 b) { return 0; } //这是一个显式转换
-        public static implicit operator float(Vector3 a) { return 1; } //这是一个隐式转换
+        public static implicit operator float(Vector3 a) { return a.x; } //这是一个隐式转换
+    }
+
+    public class StructTests
+    {
+        class MyClass
+        {
+            MyStruct stru = new MyStruct();            
+        }
+        struct MyStruct
+        {
+            public int i;
+            public EnumTest.TestEnum e;
+        }
+
+        public static void StructTest1()
+        {
+            var m = new MyStruct[10];
+            m[1] = new MyStruct();   // `Throw exception here.`
+        }
+
+        public static void StructTest2()
+        {
+            MyClass c = new MyClass();
+            Console.WriteLine(c.ToString());
+        }
+
+        public static void StructTest3()
+        {
+            var s = new MyStruct();
+            s.i = 123;
+            s.e = EnumTest.TestEnum.Enum2;
+            var b = s;
+
+            Console.WriteLine(s.e + " " + s.i);
+            Console.WriteLine(b.e + " " + b.i);
+        }
     }
 }

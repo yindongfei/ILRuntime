@@ -18,7 +18,7 @@ namespace ILRuntimeTest
 {
     public partial class TestMainForm : Form
     {
-        ILRuntime.Runtime.Enviorment.AppDomain _app;
+        public static ILRuntime.Runtime.Enviorment.AppDomain _app;
         private Assembly _assembly;
         private List<TestResultInfo> _resList = new List<TestResultInfo>();
         private List<BaseTestUnit> _testUnitList = new List<BaseTestUnit>();
@@ -40,7 +40,6 @@ namespace ILRuntimeTest
             listView1.View = View.Details;
             _app = new ILRuntime.Runtime.Enviorment.AppDomain();
             _app.DebugService.StartDebugService(56000);
-            ILRuntime.Runtime.Generated.CLRBindings.Initialize(_app);
         }
 
         private void OnBtnRun(object sender, EventArgs e)
@@ -123,13 +122,28 @@ namespace ILRuntimeTest
                 {
                     var path = Path.GetDirectoryName(txtPath.Text);
                     var name = Path.GetFileNameWithoutExtension(txtPath.Text);
-                    using (var fs2 = new System.IO.FileStream($"{path}\\{name}.pdb", FileMode.Open))
+                    var pdbPath = Path.Combine(path, name) + ".pdb";
+                    if (!File.Exists(pdbPath)) {
+                        name = Path.GetFileName(txtPath.Text);
+                        pdbPath = Path.Combine(path, name) + ".mdb";
+                    }
+
+                    using (var fs2 = new System.IO.FileStream(pdbPath, FileMode.Open))
                     {
-                        _app.LoadAssembly(fs, fs2, new Mono.Cecil.Pdb.PdbReaderProvider());
+                        Mono.Cecil.Cil.ISymbolReaderProvider symbolReaderProvider = null;
+                        if (pdbPath.EndsWith (".pdb")) {
+                            symbolReaderProvider = new Mono.Cecil.Pdb.PdbReaderProvider ();
+                        } else if (pdbPath.EndsWith (".mdb")) {
+                            symbolReaderProvider = new Mono.Cecil.Mdb.MdbReaderProvider ();
+                        }
+
+                        _app.LoadAssembly(fs, fs2, symbolReaderProvider);
                         _isLoadAssembly = true;
                     }
 
                     ILRuntimeHelper.Init(_app);
+                    ILRuntime.Runtime.Generated.CLRBindings.Initialize(_app);
+
                     LoadTest();
                     UpdateBtnState();
                 }
@@ -201,7 +215,7 @@ namespace ILRuntimeTest
                     string fullName = ilType.FullName;
                     //Console.WriteLine("call the method:{0},return type {1},params count{2}", fullName + "." + methodInfo.Name, methodInfo.ReturnType, methodInfo.GetParameters().Length);
                     //目前只支持无参数，无返回值测试
-                    if (methodInfo.ParameterCount == 0 && methodInfo.IsStatic)
+                    if (methodInfo.ParameterCount == 0 && methodInfo.IsStatic && ((ILRuntime.CLR.Method.ILMethod)methodInfo).Definition.IsPublic)
                     {
                         var testUnit = new StaticTestUnit();
                         testUnit.Init(_app, fullName, methodInfo.Name);
@@ -228,7 +242,7 @@ namespace ILRuntimeTest
 
         private void btnGenerateBinding_Click(object sender, EventArgs e)
         {
-            List<Type> types = new List<Type>();
+            /*List<Type> types = new List<Type>();
             types.Add(typeof(int));
             types.Add(typeof(float));
             types.Add(typeof(long));
@@ -240,7 +254,16 @@ namespace ILRuntimeTest
             types.Add(typeof(Dictionary<string, int>));
             types.Add(typeof(Dictionary<ILRuntime.Runtime.Intepreter.ILTypeInstance, int>));
             types.Add(typeof(TestFramework.TestStruct));
-            ILRuntime.Runtime.CLRBinding.BindingCodeGenerator.GenerateBindingCode(types, "..\\..\\AutoGenerate");
+            ILRuntime.Runtime.CLRBinding.BindingCodeGenerator.GenerateBindingCode(types, "..\\..\\AutoGenerate");*/
+            ILRuntime.Runtime.Enviorment.AppDomain domain = new ILRuntime.Runtime.Enviorment.AppDomain();
+            using (FileStream fs = new FileStream(txtPath.Text, FileMode.Open, FileAccess.Read))
+            {
+                domain.LoadAssembly(fs);
+            }
+            //Crossbind Adapter is needed to generate the correct binding code
+            ILRuntimeHelper.Init(domain);
+            string outputPath = ".." + Path.DirectorySeparatorChar + ".." + Path.DirectorySeparatorChar + "AutoGenerate"; // "..\\..\\AutoGenerate"
+            ILRuntime.Runtime.CLRBinding.BindingCodeGenerator.GenerateBindingCode(domain, outputPath);
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 
 using ILRuntimeTest.TestFramework;
 
@@ -45,12 +46,12 @@ namespace TestCases
             Console.WriteLine(obj);
 
             var arr = t.GetCustomAttributes(typeof(TestAttribute), false);
-            foreach(var i in arr)
+            foreach (var i in arr)
             {
                 TestAttribute a = (TestAttribute)i;
                 Console.WriteLine(a.TestProp);
             }
-            
+
             arr = typeof(TestCls).GetCustomAttributes(false);
             foreach (var i in arr)
             {
@@ -96,6 +97,55 @@ namespace TestCases
             Console.WriteLine(SingletonTest.Inst.testFloat);
         }
 
+        public static void ReflectionTest07()
+        {
+            //-----------------------------CLR-----------------------------//
+            var isDefined = typeof(TestCls2).IsDefined(typeof(ObsoleteAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 1");
+            }
+
+            isDefined = typeof(TestCls2).GetProperty("Attribute_prop").IsDefined(typeof(TestCLRAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 2");
+            }
+
+            isDefined = typeof(TestCls2).GetField("Attribute_field").IsDefined(typeof(TestCLRAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 3");
+            }
+        }
+
+        public static void ReflectionTest08()
+        {
+            //-----------------------------CLR-----------------------------//
+            var isDefined = typeof(TestCls2).IsDefined(typeof(TestAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 1");
+            }
+
+            isDefined = typeof(TestCls2).GetProperty("ILAttribute_prop").IsDefined(typeof(TestAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 2");
+            }
+
+            isDefined = typeof(TestCls2).GetField("ILAttribute_field").IsDefined(typeof(TestAttribute), true);
+
+            if (isDefined == false)
+            {
+                throw new Exception("isDefeinded == false 3");
+            }
+        }
         [Obsolete("gasdgas")]
         class TestCls
         {
@@ -118,11 +168,24 @@ namespace TestCases
             }
         }
 
+
+        [Serializable]
+        [Obsolete]
         [Test(true, TestProp = "1234")]
         [Test]
-        [Serializable]
-        class TestCls2
+        public class TestCls2
         {
+            [TestCLR]
+            public int Attribute_field;
+
+            [Test]
+            public int ILAttribute_field;
+
+            [TestCLR]
+            public int Attribute_prop { get; set; }
+
+            [Test]
+            public int ILAttribute_prop { get; set; }
 
         }
 
@@ -140,6 +203,211 @@ namespace TestCases
             }
 
             public string TestProp { get; set; }
+        }
+
+        public class MyClass
+        {
+            public uint B { get; set; }
+        }
+
+        public static void ReflectionTest09()
+        {
+            var r = new MyClass()
+            {
+                B = 14,
+            };
+
+            PropertyInfo p = typeof(MyClass).GetProperty("B");
+            object obj = p.GetGetMethod().Invoke(r, null);
+            Console.WriteLine("p type: " + obj.GetType().FullName); //显示System.Int32，正确应该是System.UInt32
+
+            if (obj is ValueType)
+            {
+                Console.WriteLine("value type");
+            }
+            else
+            {
+                throw new Exception("not value type"); //走进了这里
+            }
+
+            obj = p.GetValue(r, null);
+            Console.WriteLine("p type: " + obj.GetType().FullName); //显示System.Int32，正确应该是System.UInt32
+
+            if (obj is ValueType)
+            {
+                Console.WriteLine("value type");
+            }
+            else
+            {
+                throw new Exception("not value type"); //走进了这里
+            }
+        }
+
+        public class Tx
+        {
+            public float FloatField { get; set; }
+            public int IntField { get; set; }
+            public EnumTest.TestEnum EnumField { get; set; }
+            public static int StaticField { get; set; }
+        }
+
+        public static void ReflectionTest10()
+        {
+            Tx obj = new Tx { FloatField = 21, IntField = 21 };
+            Type t = obj.GetType();
+            var fields = t.GetProperties(BindingFlags.Public);
+            var info = fields[0]; //FloatField
+
+            object value = info.GetGetMethod().Invoke(obj, null);
+            Console.WriteLine(string.Format("{0} = {1}", info.Name, value));
+
+            if (value == null)
+            {
+                throw new Exception("null obj - FloatField"); // 不应该走到这里来，但走到了这里
+            }
+
+            info = fields[1];
+
+            value = info.GetGetMethod().Invoke(obj, null);
+            Console.WriteLine(string.Format("{0} = {1}", info.Name, value));
+
+            if (value == null)
+            {
+                throw new Exception("null obj - IntField");
+            }
+            else
+            {
+                Console.WriteLine("not null obj - IntField"); // 对于int是正确的，走到了这里
+            }
+
+            info = fields[2];
+
+            value = info.GetGetMethod().Invoke(obj, null);
+            Console.WriteLine(string.Format("{0} = {1}", info.Name, value));
+
+            info = fields[3];
+
+            value = info.GetValue(null, null);
+            Console.WriteLine(string.Format("{0} = {1}", info.Name, value));
+        }
+
+
+
+        class test24Class
+        {
+            public int this[int index, long index2]
+            {
+                get
+                {
+                    return (int)(index + index2);
+                }
+                set
+                {
+                    Console.WriteLine($"{index},{index2}={value}");
+                }
+            }
+        }
+        public static void ReflectionTest11()
+        {
+            ReflectionTest11Sub(new test24Class());
+        }
+
+        static void ReflectionTest11Sub(object o)
+        {
+            var p = o.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);//error
+            foreach (var i in p)
+            {
+                Console.WriteLine(i.GetValue(o, new object[] { 1, 2L ,3333}));
+                i.SetValue(o, 333, new object[] { 123, 345L, 678 });
+            }
+        }
+
+        public static void ReflectionTest12()
+        {
+            var types = ILRuntimeTest.TestMainForm._app.LoadedTypes.ToArray();
+            for (int i = 0; i < types.Length; i++)
+            {
+                Type type = types[i].Value.ReflectionType;
+
+                //if (type.BaseType != null && (type.BaseType == typeof(Attribute) || type.BaseType.Name == "Attribute"))
+                //    continue;
+
+                //if (type.BaseType != null && type.BaseType.Name == "Void")
+                //    continue;
+
+                object[] attrs = type.GetCustomAttributes(typeof(TestAttribute), false);
+            }
+
+        }
+
+        public static void ReflectionTest13()
+        {
+            object[] attrs = typeof(TestController).GetCustomAttributes(typeof(ObjectEventAttribute), false);
+            //结果attrs的Length > 0 , 这是错误的结果吧
+            Console.WriteLine(attrs.Length);
+
+        }
+
+        public static void ReflectionTest14()
+        {
+            TestTypeAssignableFrom(typeof(PlayerInfo));
+        }
+
+        class Ron<T>
+        {
+            public T Value { get; set; }
+        }
+        public static void ReflectionTest15()
+        {
+            Type t = typeof(Ron<>);
+            Console.WriteLine("t Type ==> " + t);
+            Type constructed = t.MakeGenericType(new Type[] { typeof(string) });
+            Ron<string> ins = Activator.CreateInstance(constructed, new object[] { "Test Success" }) as Ron<string>;
+            ins.Value = "OK";
+            Console.WriteLine(ins.Value);
+        }
+        private static void TestTypeAssignableFrom(Type targetType)
+        {
+            foreach (System.Reflection.PropertyInfo property in targetType.GetProperties())
+            {
+                if (!property.CanWrite)
+                {
+                    continue;
+                }
+                Console.WriteLine(property.Name + "|" + typeof(System.Collections.ICollection).IsAssignableFrom(property.PropertyType));
+            }
+
+            foreach (System.Reflection.FieldInfo field in targetType.GetFields())
+            {
+                Console.WriteLine(field.Name + "|" + typeof(System.Collections.ICollection).IsAssignableFrom(field.FieldType));
+            }
+        }
+
+
+        class PlayerInfo
+        {
+            public string[] tags_F;
+
+            public Detail[] Details_F;
+
+            public string[] tags_P { get; set; }
+
+            public Detail[] Details_P { get; set; }
+        }
+
+        class Detail
+        {
+        }
+
+        [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+        public class ObjectEventAttribute : Attribute
+        {
+        }
+
+        [Test]
+        public sealed class TestController
+        {
+            public static TestController instance = new TestController();
         }
     }
 }

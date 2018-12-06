@@ -118,7 +118,18 @@ namespace TestCases
             Student<string> a = new TestCases.Student<string>("aaaaaa");
             Console.WriteLine(a.name);
         }
+        public static void UnitTest_Out2()
+        {
+            Dictionary<string, TestClassC[]> data = new Dictionary<string, TestClassC[]>();
+            data["key"] = new TestClassC[1] { new TestClassC() };
+            TestClassC[] item;
+            data.TryGetValue("key", out item);
+            Console.WriteLine("value : " + item[0]);
+        }
 
+        class TestClassC
+        {
+        }
         public static void TestArrayValueType()
         {
             int[] arr = new int[4] { 1, 2, 3, 4 };
@@ -341,6 +352,61 @@ namespace TestCases
             double doubleVal = (double)data;
             Console.WriteLine("double=" + doubleVal);
         }
+
+        interface IInterface
+        {
+            void Check();
+        }
+
+
+        struct MM : IInterface
+        {
+            public int i;
+            public string s;
+
+            public void Check()
+            {
+                Console.WriteLine("checkkk:" + i);
+            }
+
+        }
+
+        public static void TestGenericArray()
+        {
+            var d = new MM[]
+            {
+                new MM() {i = 1, s = "01"},
+                new MM() {i = 2, s = "02"},
+            };
+
+            //d = new MM(); //对于MM没问题
+
+            TestGenericArraySub(d);
+
+        }
+        private static void TestGenericArraySub<T>(T d)
+        {
+            object obj = d; //此处抛异常, 如果T不是MM[]，而是MM，就没有这个问题
+        }
+
+        public static void TestGenericStruct()
+        {
+            var m2 = new MM() { i = 1, s = "01" };
+            Ttt(m2); //抛异常
+            Ttt2(m2);//正确
+
+        }
+
+        static void Ttt<T>(T obj) where T : IInterface
+        {
+            obj.Check();
+        }
+
+        static void Ttt2(IInterface obj)
+        {
+            obj.Check();
+        }
+
         public static void Run()
         {
             TestTryCatch();

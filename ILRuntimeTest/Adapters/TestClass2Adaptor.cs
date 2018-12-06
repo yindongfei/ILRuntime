@@ -28,7 +28,7 @@ namespace ILRuntimeTest.TestFramework
             return new Adaptor(appdomain, instance);
         }
 
-		internal class Adaptor : TestClass2, CrossBindingAdaptorType
+        internal class Adaptor : TestClass2, CrossBindingAdaptorType
         {
             ILTypeInstance instance;
             ILRuntime.Runtime.Enviorment.AppDomain appdomain;
@@ -81,7 +81,7 @@ namespace ILRuntimeTest.TestFramework
                     isVMethod2Invoking = true;
                     var res = (Boolean)appdomain.Invoke(mVMethod2, instance );
                     isVMethod2Invoking = false;
-					return res;
+                    return res;
                 }
                 else
                     return (Boolean)base.VMethod2();
@@ -103,12 +103,18 @@ namespace ILRuntimeTest.TestFramework
             {
                 if(mAbMethod2 == null)
                 {
-                    mAbMethod2 = instance.Type.GetMethod("AbMethod2", 0);
+                    mAbMethod2 = instance.Type.GetMethod("AbMethod2", 1);
                 }
 
                 if (mAbMethod2 != null)
                 {
-					return (Single)appdomain.Invoke(mAbMethod2, instance ,arg1);
+                    using(var ctx = appdomain.BeginInvoke(mAbMethod2))
+                    {
+                        ctx.PushObject(instance);
+                        ctx.PushInteger(arg1);
+                        ctx.Invoke();
+                        return ctx.ReadFloat();
+                    }                    
                 }
                 
                 return 0;
@@ -132,5 +138,78 @@ namespace ILRuntimeTest.TestFramework
         }
     }
 
-	
+    public class IDisposableClassInheritanceAdaptor : CrossBindingAdaptor
+    {
+        public override Type BaseCLRType
+        {
+            get
+            {
+                return typeof(IDisposable);
+            }
+        }
+
+        public override Type AdaptorType
+        {
+            get
+            {
+                return typeof(IDisposableAdaptor);
+            }
+        }
+
+        public override object CreateCLRInstance(ILRuntime.Runtime.Enviorment.AppDomain appdomain, ILTypeInstance instance)
+        {
+            return new IDisposableAdaptor(appdomain, instance);
+        }
+
+        public class IDisposableAdaptor : IDisposable, CrossBindingAdaptorType
+        {
+            private ILTypeInstance instance;
+            private ILRuntime.Runtime.Enviorment.AppDomain appDomain;
+
+            private IMethod iDisposable;
+            private readonly object[] param0 = new object[0];
+
+            public IDisposableAdaptor()
+            {
+            }
+
+            public IDisposableAdaptor(ILRuntime.Runtime.Enviorment.AppDomain appDomain, ILTypeInstance instance)
+            {
+                this.appDomain = appDomain;
+                this.instance = instance;
+            }
+
+            public ILTypeInstance ILInstance
+            {
+                get
+                {
+                    return instance;
+                }
+            }
+
+            public void Dispose()
+            {
+                if (this.iDisposable == null)
+                {
+                    this.iDisposable = instance.Type.GetMethod("Dispose");
+                }
+                this.appDomain.Invoke(this.iDisposable, instance, this.param0);
+            }
+
+            public override string ToString()
+            {
+                IMethod m = this.appDomain.ObjectType.GetMethod("ToString", 0);
+                m = instance.Type.GetVirtualMethod(m);
+                if (m == null || m is ILMethod)
+                {
+                    return instance.ToString();
+                }
+
+                return instance.Type.FullName;
+            }
+
+
+        }
+    }
+
 }

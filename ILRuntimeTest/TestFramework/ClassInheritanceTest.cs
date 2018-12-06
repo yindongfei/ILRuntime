@@ -124,10 +124,22 @@ namespace ILRuntimeTest.TestFramework
         }
     }
     [NeedAdaptor]
-    public abstract class ClassInheritanceTest: InterfaceTest
+    public abstract class ClassInheritanceTest : InterfaceTest
     {
         protected int testVal = 100;
         public int TestVal2 = 200;
+        public static IDisposable staticField;
+
+        public ClassInheritanceTest()
+        {
+
+        }
+
+        public ClassInheritanceTest(int a, int b)
+        {
+            testVal = 444;
+            TestVal2 = 555;
+        }
 
         public abstract void TestAbstract();
 
@@ -139,6 +151,7 @@ namespace ILRuntimeTest.TestFramework
         public void TestField()
         {
             Console.WriteLine("testVal = " + testVal);
+            Console.WriteLine("testVal2 = " + TestVal2);
         }
 
         public static void Test3(InterfaceTest ins)
@@ -148,6 +161,11 @@ namespace ILRuntimeTest.TestFramework
             ins.TestVirtual();
             ((ClassInheritanceTest)ins).testVal = 233;
             ins.TestField();
+        }
+
+        public static void TestLongRef(ref long i)
+        {
+            Console.WriteLine(string.Format("TestLongRef:{0}", i));
         }
     }
 
